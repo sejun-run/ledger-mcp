@@ -361,30 +361,15 @@ def reset(confirm: bool = False) -> str:
 
 
 def http_app():
-    """Streamable HTTP app. Optional protection: LEDGER_PATH_PREFIX serves at /<prefix>/mcp (URL-as-secret),
-    LEDGER_TOKEN requires `Authorization: Bearer <token>`."""
-    from starlette.middleware import Middleware
-    from starlette.middleware.base import BaseHTTPMiddleware
-    from starlette.responses import JSONResponse
-
+    """Streamable HTTP app. LEDGER_PATH_PREFIX serves at /<prefix>/mcp (URL-as-secret)."""
     from mcp.server.transport_security import TransportSecuritySettings
 
-    token = os.environ.get("LEDGER_TOKEN")
-
-    class Bearer(BaseHTTPMiddleware):
-        async def dispatch(self, request, call_next):
-            if token and request.headers.get("authorization") != f"Bearer {token}":
-                return JSONResponse({"error": "unauthorized"}, status_code=401)
-            return await call_next(request)
-
     prefix = os.environ.get("LEDGER_PATH_PREFIX", "").strip("/")
-    app = mcp.streamable_http_app(
+    return mcp.streamable_http_app(
         host="0.0.0.0",
         streamable_http_path=f"/{prefix}/mcp" if prefix else "/mcp",
         transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
     )
-    app.add_middleware(Bearer)
-    return app
 
 
 def main() -> None:

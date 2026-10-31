@@ -86,15 +86,10 @@ into the submission so the trail is still visible.
 # on ampere (~/ledger-mcp)
 docker build -t ledger .
 docker run -d --name ledger --restart unless-stopped -p 8000:8000 \
-  -v ledger-data:/data -e LEDGER_TOKEN=$(cat .ledger-token) ledger
+  -v ledger-data:/data -e LEDGER_PATH_PREFIX=<secret-words> ledger
 ```
 
-Token is in `.ledger-token` (git-ignored). Codex entry `ledger-remote` in `~/.codex/config.toml`
-Token is optional: omit `-e LEDGER_TOKEN` to run open (current ampere setup).
-
-Blocker: OCI VCN security list only allows TCP 22. Add an ingress rule for TCP 8000 from 0.0.0.0/0,
-then `codex mcp` enable `ledger-remote`. Fallback without opening a port: run a cloudflared quick
-tunnel next to the container and use the printed URL instead.
+The prefix is the only access control: keep it out of the repo and reset the ledger after use.
 
 ## Domain: https://ledger.sejun.run/<PREFIX>/mcp
 
