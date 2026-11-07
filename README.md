@@ -97,3 +97,12 @@ Gateway (amd-gateway) nginx terminates TLS with the existing `*.sejun.run` cert 
 ampere over the private VCN (<AMPERE_PRIVATE_IP>:8000). Server block: `deploy/ledger.sejun.run.conf`,
 appended to `/srv/snappycal-gateway/repo/server/llm_app_api/deploy/nginx/api.sejun.run.conf`.
 DNS: Cloudflare A record `ledger` -> <GATEWAY_PUBLIC_IP>.
+
+## Deploy (ledger.sejun.run)
+
+Runs in the k3s cluster, namespace `ledger`, manifests in `deploy/k8s/`. Pushing to `main`
+builds a multi-arch image to `registry.sejun.run/ledger:<sha>` and rolls it out
+(`.github/workflows/deploy.yml`). One-time bootstrap by hand: `namespace.yaml`, `rbac.yaml`,
+`storage.yaml`, and the `ledger-secrets` Secret (`secret.example.yaml`). Rollback with
+`kubectl -n ledger rollout undo deploy/ledger`. The old nginx conf in `deploy/` is historical;
+routing is the Ingress in `deployment.yaml`.

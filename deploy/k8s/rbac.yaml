@@ -1,0 +1,46 @@
+# ServiceAccount used by CI (GitHub Actions) to roll out into the ledger namespace only.
+# Applied by hand once; CI only applies deployment.yaml.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ledger-deployer
+  namespace: ledger
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ledger-deployer-token
+  namespace: ledger
+  annotations:
+    kubernetes.io/service-account.name: ledger-deployer
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ledger-deployer
+  namespace: ledger
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ledger-deployer
+  namespace: ledger
+subjects:
+  - kind: ServiceAccount
+    name: ledger-deployer
+    namespace: ledger
+roleRef:
+  kind: Role
+  name: ledger-deployer
+  apiGroup: rbac.authorization.k8s.io

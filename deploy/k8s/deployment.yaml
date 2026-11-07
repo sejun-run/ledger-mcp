@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ledger
+  namespace: ledger
+  labels:
+    app.kubernetes.io/name: ledger
+    app.kubernetes.io/component: mcp
+    app.kubernetes.io/part-of: ledger
+    app.kubernetes.io/managed-by: github-actions
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate   # one writer for the JSON ledger
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ledger
+      app.kubernetes.io/component: mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ledger
+        app.kubernetes.io/component: mcp
+        app.kubernetes.io/part-of: ledger
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        node.sejun.run/role: app
+      containers:
+        - name: mcp
+          # CI substitutes the commit sha here; `kubectl rollout undo` rolls back.
+          image: registry.sejun.run/ledger:latest
+          args: ["--http"]
+          env:
+            - name: LEDGER_PATH
+              value: /data/ledger.json
+            - name: PORT
+              value: "8000"
+          envFrom:
+            - secretRef:
+                name: ledger-secrets
+          ports:
+            - name: http
+              containerPort: 8000
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 10m, memory: 64Mi }
+            limits: { memory: 256Mi }
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ledger-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ledger
+  namespace: ledger
+  labels:
+    app.kubernetes.io/name: ledger
+    app.kubernetes.io/part-of: ledger
+spec:
+  selector:
+    app.kubernetes.io/name: ledger
+    app.kubernetes.io/component: mcp
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ledger
+  namespace: ledger
+  labels:
+    app.kubernetes.io/name: ledger
+    app.kubernetes.io/part-of: ledger
+spec:
+  rules:
+    - host: ledger.sejun.run
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: ledger, port: { name: http } } }
