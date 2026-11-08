@@ -30,7 +30,6 @@ spec:
         - name: mcp
           # CI substitutes the commit sha here; `kubectl rollout undo` rolls back.
           image: registry.sejun.run/ledger:latest
-          args: ["--http"]
           env:
             - name: LEDGER_PATH
               value: /data/ledger.json
