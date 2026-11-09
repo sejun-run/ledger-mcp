@@ -45,6 +45,9 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v7
       - uses: azure/setup-kubectl@v4
@@ -52,12 +55,14 @@ jobs:
         env:
           KUBE_SERVER: ${{ secrets.KUBE_SERVER }}
           KUBE_CA: ${{ secrets.KUBE_CA }}
-          KUBE_TOKEN: ${{ secrets.KUBE_TOKEN }}
         run: |
+          KUBE_TOKEN=$(curl -fsS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sejun-run-k3s" | jq -r .value)
+          echo "::add-mask::$KUBE_TOKEN"
           echo "$KUBE_CA" | base64 -d > /tmp/ca.crt
           kubectl config set-cluster k3s --server="$KUBE_SERVER" --certificate-authority=/tmp/ca.crt
-          kubectl config set-credentials ledger-deployer --token="$KUBE_TOKEN"
-          kubectl config set-context ledger --cluster=k3s --user=ledger-deployer --namespace=ledger
+          kubectl config set-credentials gha --token="$KUBE_TOKEN"
+          kubectl config set-context ledger --cluster=k3s --user=gha --namespace=ledger
           kubectl config use-context ledger
       - name: Apply (image pinned to this commit)
         run: |
