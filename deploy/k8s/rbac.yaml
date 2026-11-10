@@ -1,20 +1,6 @@
-# ServiceAccount used by CI (GitHub Actions) to roll out into the ledger namespace only.
+# CI deploys with GitHub OIDC, so there is no ServiceAccount or token: the apiserver maps a run
+# on sejun-run/ledger-mcp@main to the RoleBinding's user (authentication-config on ampere).
 # Applied by hand once; CI only applies deployment.yaml.
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ledger-deployer
-  namespace: ledger
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ledger-deployer-token
-  namespace: ledger
-  annotations:
-    kubernetes.io/service-account.name: ledger-deployer
-type: kubernetes.io/service-account-token
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -36,20 +22,6 @@ rules:
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses"]
     verbs: ["get", "create", "update", "patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: ledger-deployer
-  namespace: ledger
-subjects:
-  - kind: ServiceAccount
-    name: ledger-deployer
-    namespace: ledger
-roleRef:
-  kind: Role
-  name: ledger-deployer
-  apiGroup: rbac.authorization.k8s.io
 ---
 # GitHub Actions OIDC: a run on sejun-run/ledger-mcp@main is mapped to this user by the
 # apiserver's authentication-config, so CI holds no stored token.
